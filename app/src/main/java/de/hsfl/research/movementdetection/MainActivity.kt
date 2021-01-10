@@ -14,6 +14,7 @@ import android.util.Size
 import android.view.Surface
 import android.view.TextureView
 import android.view.TextureView.SurfaceTextureListener
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity() {
   private var mBackgroundHandler: Handler? = null
   private var mImageReader: ImageReader? = null
   private var mBackgroundThread: HandlerThread? = null
+  private var mImageView: ImageView? = null
 
   // This listener listens to TextureView changes.
   private val mSurfaceTextureListener: SurfaceTextureListener = object : SurfaceTextureListener {
@@ -63,7 +65,8 @@ class MainActivity : AppCompatActivity() {
       return true
     }
 
-    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {}
+    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+    }
   }
 
   // This callback instance handles the states of the camera object.
@@ -292,6 +295,7 @@ class MainActivity : AppCompatActivity() {
     setContentView(R.layout.activity_main)
 
     mTextureView = findViewById(R.id.textureView)
+    mImageView = findViewById(R.id.imageView)
   }
 
   override fun onResume() {
