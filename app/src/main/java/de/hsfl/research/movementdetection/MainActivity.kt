@@ -51,6 +51,11 @@ class MainActivity : AppCompatActivity() {
   private var mBackgroundThread: HandlerThread? = null
   private var mImageView: ImageView? = null
 
+  // This callback will be invoked on the "CameraBackground" thread for each frame.
+  private val mImageReaderCallback = ImageReader.OnImageAvailableListener {
+    TODO("Implement object detection here and update the ImageView")
+  }
+
   // This listener listens to TextureView changes.
   private val mSurfaceTextureListener: SurfaceTextureListener = object : SurfaceTextureListener {
     override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
@@ -66,6 +71,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+
     }
   }
 
@@ -171,7 +177,7 @@ class MainActivity : AppCompatActivity() {
       val list = map.getOutputSizes(ImageFormat.JPEG).toList()
       val largest: Size = Collections.max(list, CompareSizesByArea())
       mImageReader = ImageReader.newInstance(largest.width, largest.height, ImageFormat.JPEG, 2)
-      mImageReader?.setOnImageAvailableListener(null, mBackgroundHandler)
+      mImageReader?.setOnImageAvailableListener(mImageReaderCallback, mBackgroundHandler)
 
       val displaySize = Point()
       windowManager.defaultDisplay.getSize(displaySize)
@@ -226,6 +232,7 @@ class MainActivity : AppCompatActivity() {
 
     mCaptureRequestBuilder = mCameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
     mCaptureRequestBuilder?.addTarget(surface)
+    mCaptureRequestBuilder?.addTarget(mImageReader?.surface!!)
 
     mCameraDevice?.createCaptureSession(listOf(surface, mImageReader?.surface), object : CameraCaptureSession.StateCallback() {
       override fun onConfigureFailed(session: CameraCaptureSession) {
