@@ -32,10 +32,6 @@ class MainActivity : AppCompatActivity() {
     const val REQUEST_CAMERA_PERMISSION = 10
     const val MAX_PREVIEW_WIDTH = 1920
     const val MAX_PREVIEW_HEIGHT = 1080
-
-    init {
-      System.loadLibrary("native-lib")
-    }
   }
 
   private var mTextureView: TextureView? = null
@@ -321,7 +317,5 @@ class MainActivity : AppCompatActivity() {
     stopBackgroundThread()
     super.onPause()
   }
-
-  external fun stringFromJNI(): String
 
 }
