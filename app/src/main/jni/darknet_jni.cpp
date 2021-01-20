@@ -83,19 +83,19 @@ JNIEXPORT jboolean JNICALL Java_de_hsfl_research_movementdetection_YOLOv4_init(J
     yolov4.opt = create_options(pool_allocator);
     AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
 
-    if (yolov4.load_param_bin(mgr, "yolov4-tiny.param.bin")) {
-        __android_log_print(ANDROID_LOG_DEBUG, "YOLOv4", "load_param_bin failed");
+    if (yolov4.load_param(mgr, "yolov4-tiny.param")) {
+        __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load_param_bin failed");
         return JNI_FALSE;
     }
 
     if (yolov4.load_model(mgr, "yolov4-tiny.bin")) {
-        __android_log_print(ANDROID_LOG_DEBUG, "YOLOv4", "load_model failed");
+        __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load_model failed");
         return JNI_FALSE;
     }
 
     AAsset* asset = AAssetManager_open(mgr, "synset_words.txt", AASSET_MODE_BUFFER);
     if (!asset) {
-        __android_log_print(ANDROID_LOG_DEBUG, "YOLOv4", "load synset_words.txt failed");
+        __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load synset_words.txt failed");
         return JNI_FALSE;
     }
 

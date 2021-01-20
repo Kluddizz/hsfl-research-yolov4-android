@@ -59,6 +59,14 @@ class MainActivity : AppCompatActivity() {
 
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     val bb = mDetector?.detect(bitmap)
+
+    if (bb != null) {
+      for (b in bb) {
+        val cx = b.x1 + (b.x2 - b.x1) / 2.0f
+        val cy = b.y1 + (b.y2 - b.x1) / 2.0f
+        Log.i("mDetector", "($cx, $cy)")
+      }
+    }
   }
 
   // This listener listens to TextureView changes.
@@ -309,6 +317,8 @@ class MainActivity : AppCompatActivity() {
     mTextureView = findViewById(R.id.textureView)
     mImageView = findViewById(R.id.imageView)
     mDetector = YOLOv4()
+
+    mDetector?.init(assets)
   }
 
   override fun onResume() {
