@@ -46,10 +46,19 @@ class MainActivity : AppCompatActivity() {
   private var mImageReader: ImageReader? = null
   private var mBackgroundThread: HandlerThread? = null
   private var mImageView: ImageView? = null
+  private var mDetector: YOLOv4? = null
 
   // This callback will be invoked on the "CameraBackground" thread for each frame.
   private val mImageReaderCallback = ImageReader.OnImageAvailableListener {
-    TODO("Implement object detection here and update the ImageView")
+    val image = it.acquireLatestImage()
+    val buffer = image.planes[0].buffer
+    buffer.rewind()
+    val bytes = ByteArray(buffer.remaining())
+    buffer.get(bytes)
+    image.close()
+
+    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    val bb = mDetector?.detect(bitmap)
   }
 
   // This listener listens to TextureView changes.
@@ -299,6 +308,7 @@ class MainActivity : AppCompatActivity() {
 
     mTextureView = findViewById(R.id.textureView)
     mImageView = findViewById(R.id.imageView)
+    mDetector = YOLOv4()
   }
 
   override fun onResume() {

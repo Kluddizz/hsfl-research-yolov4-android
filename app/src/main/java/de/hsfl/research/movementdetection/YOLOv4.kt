@@ -9,7 +9,7 @@ class YOLOv4 {
 
   companion object {
     init {
-      System.loadLibrary("darknet_jni")
+      System.loadLibrary("darknet")
     }
   }
 }
