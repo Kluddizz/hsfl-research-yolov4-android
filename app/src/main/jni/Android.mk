@@ -28,8 +28,8 @@ LOCAL_SRC_FILES := $(NCNN_INSTALL_PATH)/lib/libOSDependent.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := darknet
-LOCAL_SRC_FILES := darknet_jni.cpp
+LOCAL_MODULE := ncnn-yolov4
+LOCAL_SRC_FILES := ncnn_yolov4_detector.cpp
 LOCAL_C_INCLUDES := $(NCNN_INSTALL_PATH)/include
 LOCAL_STATIC_LIBRARIES := ncnn glslang SPIRV OGLCompiler OSDependent
 

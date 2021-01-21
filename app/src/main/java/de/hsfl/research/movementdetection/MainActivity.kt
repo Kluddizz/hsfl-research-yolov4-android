@@ -20,6 +20,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import de.hsfl.research.movementdetection.detection.YoloDetector
+import de.hsfl.research.movementdetection.detection.YoloPostProcessor
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -45,28 +47,15 @@ class MainActivity : AppCompatActivity() {
   private var mBackgroundHandler: Handler? = null
   private var mImageReader: ImageReader? = null
   private var mBackgroundThread: HandlerThread? = null
-  private var mImageView: ImageView? = null
-  private var mDetector: YOLOv4? = null
+  private lateinit var mDetector: YoloDetector
 
-  // This callback will be invoked on the "CameraBackground" thread for each frame.
-  private val mImageReaderCallback = ImageReader.OnImageAvailableListener {
-    val image = it.acquireLatestImage()
-    val buffer = image.planes[0].buffer
-    buffer.rewind()
-    val bytes = ByteArray(buffer.remaining())
-    buffer.get(bytes)
-    image.close()
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
 
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-    val bb = mDetector?.detect(bitmap)
-
-    if (bb != null) {
-      for (b in bb) {
-        val cx = b.x1 + (b.x2 - b.x1) / 2.0f
-        val cy = b.y1 + (b.y2 - b.x1) / 2.0f
-        Log.i("mDetector", "($cx, $cy)")
-      }
-    }
+    mTextureView = findViewById(R.id.textureView)
+    mDetector = YoloDetector(assets, "yolov4-tiny.bin", "yolov4-tiny.param")
+    mDetector.postProcessor = YoloPostProcessor()
   }
 
   // This listener listens to TextureView changes.
@@ -190,7 +179,7 @@ class MainActivity : AppCompatActivity() {
       val list = map.getOutputSizes(ImageFormat.JPEG).toList()
       val largest: Size = Collections.max(list, CompareSizesByArea())
       mImageReader = ImageReader.newInstance(largest.width, largest.height, ImageFormat.JPEG, 2)
-      mImageReader?.setOnImageAvailableListener(mImageReaderCallback, mBackgroundHandler)
+      mImageReader?.setOnImageAvailableListener(mDetector, mBackgroundHandler)
 
       val displaySize = Point()
       windowManager.defaultDisplay.getSize(displaySize)
@@ -308,17 +297,6 @@ class MainActivity : AppCompatActivity() {
     } catch (e: InterruptedException) {
       e.printStackTrace()
     }
-  }
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
-
-    mTextureView = findViewById(R.id.textureView)
-    mImageView = findViewById(R.id.imageView)
-    mDetector = YOLOv4()
-
-    mDetector?.init(assets)
   }
 
   override fun onResume() {

@@ -6,7 +6,6 @@
 #include <android/log.h>
 
 ncnn::Net yolov4;
-std::vector<std::string> words;
 ncnn::PoolAllocator pool_allocator;
 
 typedef struct {
@@ -18,7 +17,7 @@ typedef struct {
     int label;
 } BoxInfo;
 
-ncnn::Option create_options(ncnn::Allocator& pool_allocator) {
+ncnn::Option create_options(ncnn::Allocator& allocator) {
     ncnn::Option opt;
 
     if (ncnn::get_gpu_count() > 0)
@@ -26,7 +25,7 @@ ncnn::Option create_options(ncnn::Allocator& pool_allocator) {
 
     opt.lightmode = true;
     opt.num_threads = 4;
-    opt.blob_allocator = &pool_allocator;
+    opt.blob_allocator = &allocator;
 
     return opt;
 }
@@ -34,7 +33,7 @@ ncnn::Option create_options(ncnn::Allocator& pool_allocator) {
 std::vector<BoxInfo> decode_infer(const ncnn::Mat& data, uint16_t width, uint16_t height) {
     std::vector<BoxInfo> boxes;
 
-    for (unsigned int i = 0; i < data.h; i++) {
+    for (int i = 0; i < data.h; i++) {
         BoxInfo box;
 
         const float* values = data.row(i);
@@ -51,24 +50,6 @@ std::vector<BoxInfo> decode_infer(const ncnn::Mat& data, uint16_t width, uint16_
     return boxes;
 }
 
-std::vector<std::string> split_string(std::string str, std::string delimiter) {
-    std::vector<std::string> split_result;
-    std::size_t current = str.find(delimiter);
-    std::size_t previous = 0;
-
-    while (current != std::string::npos) {
-        std::string token = str.substr(previous, current - previous);
-        split_result.push_back(token);
-        previous = current + 1;
-        current = str.find(delimiter, previous);
-    }
-
-    std::string last_token = str.substr(previous, current - previous);
-    split_result.push_back(last_token);
-
-    return split_result;
-}
-
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     ncnn::create_gpu_instance();
     return JNI_VERSION_1_4;
@@ -79,44 +60,27 @@ JNIEXPORT void JNI_OnUnload(JavaVM* vm, void* reserved) {
 }
 
 extern "C"
-JNIEXPORT jboolean JNICALL Java_de_hsfl_research_movementdetection_YOLOv4_init(JNIEnv* env, jobject, jobject assetManager) {
+JNIEXPORT jboolean JNICALL Java_de_hsfl_research_movementdetection_detection_YoloDetector_init(JNIEnv* env, jobject, jobject assetManager, jstring binFile, jstring paramFile) {
     yolov4.opt = create_options(pool_allocator);
     AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
 
-    if (yolov4.load_param(mgr, "yolov4-tiny.param")) {
+    const char* paramFileStr = env->GetStringUTFChars(paramFile, nullptr);
+    if (yolov4.load_param(mgr, paramFileStr)) {
         __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load_param_bin failed");
         return JNI_FALSE;
     }
 
-    if (yolov4.load_model(mgr, "yolov4-tiny.bin")) {
+    const char* binFileStr = env->GetStringUTFChars(binFile, nullptr);
+    if (yolov4.load_model(mgr, binFileStr)) {
         __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load_model failed");
         return JNI_FALSE;
     }
 
-    AAsset* asset = AAssetManager_open(mgr, "synset_words.txt", AASSET_MODE_BUFFER);
-    if (!asset) {
-        __android_log_print(ANDROID_LOG_ERROR, "YOLOv4", "load synset_words.txt failed");
-        return JNI_FALSE;
-    }
-
-    int len = AAsset_getLength(asset);
-    std::string words_buffer;
-    words_buffer.resize(len);
-
-    int read_bytes = AAsset_read(asset, (void*)words_buffer.data(), len);
-    AAsset_close(asset);
-
-    if (read_bytes != len) {
-        __android_log_print(ANDROID_LOG_DEBUG, "YOLOv4", "reading synset_words.txt failed");
-        return JNI_FALSE;
-    }
-
-    words = split_string(words_buffer, "\n");
     return JNI_TRUE;
 }
 
 extern "C"
-JNIEXPORT jobjectArray JNICALL Java_de_hsfl_research_movementdetection_YOLOv4_detect(JNIEnv* env, jobject, jobject image) {
+JNIEXPORT jobjectArray JNICALL Java_de_hsfl_research_movementdetection_detection_YoloDetector_detect(JNIEnv* env, jobject, jobject image) {
     AndroidBitmapInfo img_size;
     AndroidBitmap_getInfo(env, image, &img_size);
 
@@ -136,7 +100,7 @@ JNIEXPORT jobjectArray JNICALL Java_de_hsfl_research_movementdetection_YOLOv4_de
     extractor.extract("output", blob);
     std::vector<BoxInfo> boxes = decode_infer(blob, img_size.width, img_size.height);
 
-    jclass box_class = env->FindClass("de/hsfl/research/movementdetection/Box");
+    jclass box_class = env->FindClass("de/hsfl/research/movementdetection/detection/Box");
     jmethodID constructor = env->GetMethodID(box_class, "<init>", "(FFFFFI)V");
     jobjectArray result = env->NewObjectArray(boxes.size(), box_class, nullptr);
 

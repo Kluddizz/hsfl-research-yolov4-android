@@ -1,4 +1,6 @@
-package de.hsfl.research.movementdetection
+package de.hsfl.research.movementdetection.detection
+
+import android.graphics.Point
 
 class Box(
   x1: Float,
@@ -25,4 +27,7 @@ class Box(
 
   var label: Int = label
     private set
+
+  val center : Point
+    get() = Point((x1 + (x2 - x1) / 2.0f).toInt(), (y1 + (y2 - y1) / 2.0f).toInt())
 }
