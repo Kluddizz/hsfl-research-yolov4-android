@@ -14,11 +14,14 @@ import android.util.Size
 import android.view.Surface
 import android.view.TextureView
 import android.view.TextureView.SurfaceTextureListener
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import de.hsfl.research.movementdetection.detection.YoloDetector
+import de.hsfl.research.movementdetection.detection.YoloPostProcessor
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -31,10 +34,6 @@ class MainActivity : AppCompatActivity() {
     const val REQUEST_CAMERA_PERMISSION = 10
     const val MAX_PREVIEW_WIDTH = 1920
     const val MAX_PREVIEW_HEIGHT = 1080
-
-    init {
-      System.loadLibrary("native-lib")
-    }
   }
 
   private var mTextureView: TextureView? = null
@@ -48,6 +47,16 @@ class MainActivity : AppCompatActivity() {
   private var mBackgroundHandler: Handler? = null
   private var mImageReader: ImageReader? = null
   private var mBackgroundThread: HandlerThread? = null
+  private lateinit var mDetector: YoloDetector
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
+
+    mTextureView = findViewById(R.id.textureView)
+    mDetector = YoloDetector(assets, "yolov4-tiny.bin", "yolov4-tiny.param")
+    mDetector.postProcessor = YoloPostProcessor()
+  }
 
   // This listener listens to TextureView changes.
   private val mSurfaceTextureListener: SurfaceTextureListener = object : SurfaceTextureListener {
@@ -63,7 +72,9 @@ class MainActivity : AppCompatActivity() {
       return true
     }
 
-    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {}
+    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+
+    }
   }
 
   // This callback instance handles the states of the camera object.
@@ -168,7 +179,7 @@ class MainActivity : AppCompatActivity() {
       val list = map.getOutputSizes(ImageFormat.JPEG).toList()
       val largest: Size = Collections.max(list, CompareSizesByArea())
       mImageReader = ImageReader.newInstance(largest.width, largest.height, ImageFormat.JPEG, 2)
-      mImageReader?.setOnImageAvailableListener(null, mBackgroundHandler)
+      mImageReader?.setOnImageAvailableListener(mDetector, mBackgroundHandler)
 
       val displaySize = Point()
       windowManager.defaultDisplay.getSize(displaySize)
@@ -223,6 +234,7 @@ class MainActivity : AppCompatActivity() {
 
     mCaptureRequestBuilder = mCameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
     mCaptureRequestBuilder?.addTarget(surface)
+    mCaptureRequestBuilder?.addTarget(mImageReader?.surface!!)
 
     mCameraDevice?.createCaptureSession(listOf(surface, mImageReader?.surface), object : CameraCaptureSession.StateCallback() {
       override fun onConfigureFailed(session: CameraCaptureSession) {
@@ -287,13 +299,6 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
-
-    mTextureView = findViewById(R.id.textureView)
-  }
-
   override fun onResume() {
     super.onResume()
     startBackgroundThread();
@@ -310,7 +315,5 @@ class MainActivity : AppCompatActivity() {
     stopBackgroundThread()
     super.onPause()
   }
-
-  external fun stringFromJNI(): String
 
 }
