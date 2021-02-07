@@ -21,17 +21,18 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.Camera2Config
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.CameraXConfig
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.common.util.concurrent.ListenableFuture
+import de.hsfl.research.movementdetection.detection.Box
+import de.hsfl.research.movementdetection.detection.BoxDrawer
 import de.hsfl.research.movementdetection.detection.YoloDetector
 import de.hsfl.research.movementdetection.detection.YoloPostProcessor
+import java.io.ByteArrayOutputStream
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -49,15 +50,17 @@ class MainActivity : AppCompatActivity(), CameraXConfig.Provider {
   private lateinit var mDetector: YoloDetector
   private lateinit var mCameraProviderFuture: ListenableFuture<ProcessCameraProvider>
   private lateinit var mPreviewView: PreviewView
+  private lateinit var mImageView: ImageView
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
 
-    mDetector = YoloDetector(assets, "yolov4-tiny.bin", "yolov4-tiny.param")
-    mDetector.postProcessor = YoloPostProcessor()
-
     mPreviewView = findViewById(R.id.previewView)
+    mImageView = findViewById(R.id.imageView)
+
+    mDetector = YoloDetector(assets, "yolov4-tiny.bin", "yolov4-tiny.param")
+    mDetector.postProcessor = YoloPostProcessor(this, mImageView)
 
     mCameraProviderFuture = ProcessCameraProvider.getInstance(this)
     mCameraProviderFuture.addListener(Runnable {
@@ -74,8 +77,16 @@ class MainActivity : AppCompatActivity(), CameraXConfig.Provider {
       .requireLensFacing(CameraSelector.LENS_FACING_BACK)
       .build()
 
+    val imageAnalysis: ImageAnalysis = ImageAnalysis.Builder()
+      .setTargetResolution(Size(1280, 720))
+      .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+      .build()
+
+    val executor = ContextCompat.getMainExecutor(this)
+    imageAnalysis.setAnalyzer(executor, mDetector)
+
     preview.setSurfaceProvider(mPreviewView.surfaceProvider)
-    var camera = cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview)
+    cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
   }
 
   private fun startCamera(width: Int, height: Int) {

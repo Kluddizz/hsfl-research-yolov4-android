@@ -1,12 +1,15 @@
 package de.hsfl.research.movementdetection.detection
 
+import android.app.Activity
 import android.graphics.Bitmap
-import android.util.Log
+import android.widget.ImageView
 
-class YoloPostProcessor : YoloDetector.PostProcessor {
+class YoloPostProcessor(activity: Activity, imageView: ImageView) : YoloDetector.PostProcessor {
+
+    private var mBoxDrawer: BoxDrawer = BoxDrawer(activity, imageView)
 
     override fun postProcess(image: Bitmap, boundingBoxes: Array<Box>) {
-        Log.i("YoloPostProcessor", boundingBoxes.size.toString())
+        mBoxDrawer.drawCenters(image, boundingBoxes)
     }
 
 }
