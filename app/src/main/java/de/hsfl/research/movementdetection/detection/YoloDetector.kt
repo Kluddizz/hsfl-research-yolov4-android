@@ -3,13 +3,16 @@ package de.hsfl.research.movementdetection.detection
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.SurfaceTexture
 import android.media.ImageReader
+import android.util.Log
+import android.view.TextureView
 
 class YoloDetector(
         assetManager: AssetManager,
         detectorWeightsFile: String,
         detectorConfigurationFile: String
-) : ImageReader.OnImageAvailableListener {
+) {
 
   var postProcessor: PostProcessor? = null
 
@@ -30,7 +33,7 @@ class YoloDetector(
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
   }
 
-  override fun onImageAvailable(reader: ImageReader?) {
+  fun onImageAvailable(reader: ImageReader?) {
     if (reader == null)
       return
 
@@ -48,6 +51,8 @@ class YoloDetector(
   external fun detect(image: Bitmap) : Array<Box>
 
   companion object {
+    val TAG: String = YoloDetector::class.java.simpleName
+
     init {
       System.loadLibrary("ncnn-yolov4")
     }
@@ -56,4 +61,5 @@ class YoloDetector(
   interface PostProcessor {
     fun postProcess(image: Bitmap, boundingBoxes: Array<Box>)
   }
+
 }
